@@ -32,7 +32,6 @@
   EN['scene.ask.d'] = 'When an agent asks a question, pick the answer here. No more hunting for the right terminal.';
   EN['scene.jump.t'] = 'Jump back to the right terminal.';
   EN['scene.jump.d'] = 'Task done? One click takes you to the exact tab, split or tmux pane.';
-  EN['cycle.0'] = 'AI agents'; EN['cycle.1'] = 'Claude Code'; EN['cycle.2'] = 'Codex'; EN['cycle.3'] = 'Gemini CLI'; EN['cycle.4'] = 'Cursor'; EN['cycle.5'] = 'OpenCode';
   EN['install.src'] = 'Clone the repository to read the code, build it yourself or send a pull request.';
   EN['copy.iso'] = 'Copy SHA-256 checksum'; EN['copy.src'] = 'Copy clone command';
   EN['copy'] = $('#copyLabel').textContent; EN['copied'] = 'Copied';
@@ -62,15 +61,47 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && langEl.hasAttribute('data-open')) { setMenu(false); langBtn.focus(); } });
   $$('.lang-item').forEach(b => b.addEventListener('click', () => { applyLang(b.dataset.lang); setMenu(false); }));
 
-  /* ---------- headline word cycle ---------- */
-  const cycle = $('#cycle');
-  let ci = 0;
-  if (!reduced) {
-    setInterval(() => {
-      cycle.classList.add('out');
-      setTimeout(() => { ci = (ci + 1) % 6; cycle.textContent = EN['cycle.' + ci]; cycle.classList.remove('out'); }, 260);
-    }, 2600);
+  /* ---------- headline word cycle ----------
+     Each character flickers through a few glyphs before settling, staggered left to right,
+     and every word has its own colour. First word holds longer (4.5s), the rest 2.5s. */
+  const WORDS = [["AI agents", "#d97757"], ["Claude Code", "#d97757"], ["OpenCode", "#f59e0b"], ["Codex", "#22c55e"], ["Gemini CLI", "#3b82f6"], ["Cursor", "#a855f7"]];
+  const SCRAMBLE = "01+-*:.", STEP_MS = 40, SCRAMBLE_TICKS = 4, STAGGER_MS = 30;
+  const cycle = $("#cycle");
+  let wi = 0, cycleTimer = null, firstHold = true, pageHidden = false;
+  const paint = (text, color) => { cycle.textContent = text; cycle.style.color = color; };
+  function scrambleTo(text, color) {
+    const from = cycle.textContent || "", len = Math.max(from.length, text.length), padded = from.padEnd(len);
+    cycle.textContent = "";
+    const cells = [];
+    for (let i = 0; i < len; i++) { const s = document.createElement("span"); s.textContent = padded[i] || " "; cycle.appendChild(s); cells.push(s); }
+    cycle.style.color = color;
+    for (let i = 0; i < len; i++) {
+      const target = i < text.length ? text[i] : "";
+      let ticks = SCRAMBLE_TICKS;
+      const tick = () => {
+        if (ticks > 0) { cells[i].textContent = SCRAMBLE[(Math.random() * SCRAMBLE.length) | 0]; ticks--; setTimeout(tick, STEP_MS); }
+        else cells[i].textContent = target;
+      };
+      setTimeout(tick, i * STAGGER_MS);
+    }
+    /* collapse back to a plain text node once every cell has settled */
+    setTimeout(() => { cycle.textContent = text; }, len * STAGGER_MS + SCRAMBLE_TICKS * STEP_MS + 50);
   }
+  function nextWord() {
+    wi = (wi + 1) % WORDS.length;
+    const [text, color] = WORDS[wi];
+    if (reduced) { cycle.style.transition = "opacity 300ms ease"; cycle.style.opacity = "0"; setTimeout(() => { paint(text, color); cycle.style.opacity = "1"; }, 300); }
+    else scrambleTo(text, color);
+    scheduleCycle();
+  }
+  function scheduleCycle() {
+    clearTimeout(cycleTimer);
+    const wait = firstHold ? 4500 : 2500; firstHold = false;
+    if (!pageHidden) cycleTimer = setTimeout(nextWord, wait);
+  }
+  document.addEventListener("visibilitychange", () => { pageHidden = document.hidden; if (!pageHidden) scheduleCycle(); });
+  paint(WORDS[0][0], WORDS[0][1]);
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(scheduleCycle);
 
   /* ---------- install tabs + copy ---------- */
   let installTab = 'iso';
@@ -249,33 +280,48 @@
   demo.addEventListener('mouseenter', () => { paused = true; demo.classList.add('paused'); });
   demo.addEventListener('mouseleave', () => { paused = false; demo.classList.remove('paused'); });
 
-  /* ---------- hero scatter canvas (drifting 0/1 glyphs, like the reference) ---------- */
-  const cv = $('#scatter'), ctx = cv.getContext('2d');
-  const GLYPHS = ['0', '1', '+', '*', ':', '.', '-'];
-  let cells = [], cw = 0, ch = 0, dpr = 1, raf = 0;
+  /* ---------- hero scatter canvas ----------
+     A regular grid of tiny glyphs. Each glyph is dim by default and lights up with distance
+     to the pointer (linear falloff, 140px). A few glyphs are swapped at random on a timer. */
+  const cv = $("#scatter"), ctx = cv.getContext("2d");
+  const hero = $(".hero");
+  const GLYPHS = ["0", "1", "+", "-", "*", ":", "."];
+  const REACH = 140, BASE = .12, GAIN = .5;
+  let cell = innerWidth < 768 ? 20 : 14, cols = 0, rows = 0, cw = 0, ch = 0, grid = [], px = -999, py = -999, heroVisible = true;
+  const rnd = () => GLYPHS[(Math.random() * GLYPHS.length) | 0];
   function layout() {
-    dpr = Math.min(devicePixelRatio || 1, 2);
-    cw = cv.clientWidth; ch = cv.clientHeight;
-    cv.width = cw * dpr; cv.height = ch * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const stepX = 40, stepY = 40; cells = [];
-    for (let y = 0; y < ch; y += stepY) for (let x = 0; x < cw; x += stepX)
-      cells.push({ x: x + (Math.random() * 10 - 5), y: y + (Math.random() * 10 - 5), g: GLYPHS[(Math.random() * GLYPHS.length) | 0], p: Math.random() * 6.28, sp: .3 + Math.random() * .9 });
-    draw(0);
+    cell = innerWidth < 768 ? 20 : 14;
+    cw = Math.min(hero.offsetWidth, 1060); ch = Math.max(0, hero.offsetHeight - 60);
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    cv.width = cw * dpr; cv.height = ch * dpr; cv.style.width = cw + "px"; cv.style.height = ch + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cols = Math.ceil(cw / cell); rows = Math.ceil(ch / cell);
+    grid = Array.from({ length: rows }, () => Array.from({ length: cols }, rnd));
   }
-  function draw(time) {
+  function paintGrid() {
     ctx.clearRect(0, 0, cw, ch);
-    ctx.font = '11px "Geist Mono", monospace'; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
-    for (const c of cells) {
-      const a = .06 + .16 * (.5 + .5 * Math.sin(time / 1000 * c.sp + c.p));
-      ctx.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`;
-      ctx.fillText(c.g, c.x, c.y);
+    ctx.font = ((cell * .55) | 0) + "px \"JetBrains Mono\", monospace";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      const x = c * cell + cell / 2, y = r * cell + cell / 2;
+      const near = Math.max(0, 1 - Math.hypot(x - px, y - py) / REACH);
+      ctx.fillStyle = "rgba(255,255,255," + (BASE + near * GAIN).toFixed(3) + ")";
+      ctx.fillText(grid[r][c], x, y);
     }
   }
-  function loop(ts) { if (visibleHero) draw(ts); raf = requestAnimationFrame(loop); }
-  let visibleHero = true;
-  new IntersectionObserver(es => { visibleHero = es[0].isIntersecting; }, { threshold: 0 }).observe($('.hero'));
-  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(layout, 150); });
-  layout(); if (!reduced) raf = requestAnimationFrame(loop);
+  hero.addEventListener("pointermove", e => { const r = cv.getBoundingClientRect(); px = e.clientX - r.left; py = e.clientY - r.top; if (reduced) paintGrid(); });
+  hero.addEventListener("pointerleave", () => { px = py = -999; if (reduced) paintGrid(); });
+  new IntersectionObserver(es => { heroVisible = es[0].isIntersecting; }, { threshold: 0 }).observe(cv);
+  /* repaint on a steady beat so the glow follows the pointer, and shuffle ~3% of glyphs each beat */
+  setInterval(() => {
+    if (!heroVisible || document.hidden || reduced) return;
+    const n = ((rows * cols * .03) | 0) + 1;
+    for (let i = 0; i < n; i++) grid[(Math.random() * rows) | 0][(Math.random() * cols) | 0] = rnd();
+    paintGrid();
+  }, innerWidth < 768 ? 250 : 150);
+  let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { layout(); paintGrid(); }, 150); });
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => { layout(); paintGrid(); });
+  layout(); paintGrid();
 
   /* ---------- boot ---------- */
   const saved = store.get('vi-lang');

@@ -3,7 +3,6 @@ window.VI_ZH = {
   'meta.title': 'Vibe Island — 免费开源的 AI 代理灵动岛',
   'skip': '跳到主要内容',
   'nav.features': '功能', 'nav.opensource': '开源', 'nav.docs': '文档', 'nav.download': '下载',
-  'hero.over': '免费开源 · macOS 14+',
   'hero.l1': '灵动岛', 'hero.l2': '专为你的', 'hero.sr': 'AI 代理',
   'hero.sub': '让代理在后台持续工作，你始终保持专注。<br>监控、审批、一键返回，全部在刘海中完成。',
   'hero.dl': '下载 macOS 版', 'hero.gh': '在 GitHub 查看',
@@ -65,5 +64,5 @@ window.VI_ZH = {
   'final.over': '准备好了就开始', 'final.h2': '让你的代理汇聚一处。',
   'final.p': '下载 Vibe Island，在一个地方查看所有 AI 代理。它免费，并将一直免费。',
   'foot.tag': '属于 AI 代理的灵动岛，免费开源。',
-  'foot.product': '产品', 'foot.project': '项目', 'foot.copy': 'macOS 免费开源应用。', 'foot.by': '出品方'
+  'foot.product': '产品', 'foot.project': '项目', 'foot.copy': 'macOS 免费开源应用。'
 };
