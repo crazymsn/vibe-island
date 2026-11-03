@@ -35,7 +35,7 @@ window.VI_ZH = {
   'compat.t.t': '终端与编辑器', 'compat.t.d': '使用你喜欢的 Shell 与编辑器，跳转精度取决于宿主应用。',
   'compat.beta': '+ 自定义代理（Beta）',
   'works.lead': '与你正在使用的代理协同工作',
-  'os.over': '开源', 'os.h2a': '公开构建。', 'os.h2b': '永久免费。',
+  'os.over': '开源', 'os.h2a': '公开构建，', 'os.h2b': '永久免费',
   'os.p': 'Vibe Island 免费使用，欢迎贡献。阅读源码、反馈问题、添加集成，让下一个代理在 Mac 上也能宾至如归。',
   'os.star': '在 GitHub 上 Star', 'os.issue': '提交 Issue',
   'copy': '复制', 'copied': '已复制',
@@ -65,5 +65,5 @@ window.VI_ZH = {
   'final.over': '准备好了就开始', 'final.h2': '让你的代理汇聚一处。',
   'final.p': '下载 Vibe Island，在一个地方查看所有 AI 代理。它免费，并将一直免费。',
   'foot.tag': '属于 AI 代理的灵动岛，免费开源。',
-  'foot.product': '产品', 'foot.project': '项目', 'foot.copy': 'macOS 免费开源应用。'
+  'foot.product': '产品', 'foot.project': '项目', 'foot.copy': 'macOS 免费开源应用。', 'foot.by': '出品方'
 };
