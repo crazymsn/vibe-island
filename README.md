@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="build/brand/deepcloud.jpg" width="112" alt="DeepCloud">
+<img src="downloads/deepcloud.jpg" width="112" alt="DeepCloud">
 
 # Vibe Island 产品介绍
 
