@@ -1,0 +1,9 @@
+.DS_Store
+Thumbs.db
+.playwright-mcp/
+.env
+
+# local working files, not part of the project
+/*.iso
+/view-source_*.html
+/docs/superpowers/

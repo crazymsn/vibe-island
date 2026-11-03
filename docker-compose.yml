@@ -1,0 +1,23 @@
+services:
+  vibe-island:
+    image: crazymsn/vibe-island:latest
+    build:
+      context: .
+    container_name: vibe-island
+    ports:
+      # Set VIBE_ISLAND_BIND=127.0.0.1 to keep it off the network (e.g. behind a reverse proxy).
+      - "${VIBE_ISLAND_BIND:-0.0.0.0}:${VIBE_ISLAND_PORT:-8080}:8080"
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s

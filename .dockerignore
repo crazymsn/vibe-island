@@ -1,0 +1,11 @@
+.git
+.gitignore
+.dockerignore
+.playwright-mcp
+docs
+README.md
+Dockerfile
+docker-compose.yml
+view-source_*.html
+# root-level ISO only; the copy under downloads/ is what the image ships
+*.iso
