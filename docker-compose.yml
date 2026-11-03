@@ -1,20 +1,50 @@
+# 部署：docker compose up -d
+# 默认只拉取镜像，不在服务器上构建。要用本地代码构建：docker compose build
+#
+# 可通过同目录的 .env 文件或环境变量调整（都有默认值，不设也能跑）：
+#   VIBE_ISLAND_PORT   宿主机端口，默认 7080
+#   VIBE_ISLAND_BIND   监听地址，默认 0.0.0.0（公网可访问）。
+#                      前面有 Nginx/Caddy/云负载均衡时设为 127.0.0.1
+#   VIBE_ISLAND_TAG    镜像标签，默认 latest。生产环境建议固定为具体版本
+
+name: vibe-island
+
 services:
   vibe-island:
-    image: crazymsn/vibe-island:latest
+    image: crazymsn/vibe-island:${VIBE_ISLAND_TAG:-latest}
+    # 仅在执行 `docker compose build` 时使用；up 不会触发构建
     build:
       context: .
+    pull_policy: always
     container_name: vibe-island
-    ports:
-      # Set VIBE_ISLAND_BIND=127.0.0.1 to keep it off the network (e.g. behind a reverse proxy).
-      - "${VIBE_ISLAND_BIND:-0.0.0.0}:${VIBE_ISLAND_PORT:-8080}:8080"
+    init: true
     restart: unless-stopped
+    stop_grace_period: 10s
+
+    ports:
+      - "${VIBE_ISLAND_BIND:-0.0.0.0}:${VIBE_ISLAND_PORT:-7080}:8080"
+
+    # —— 安全加固 ——
     read_only: true
     tmpfs:
-      - /tmp
+      - /tmp:size=16m,mode=1777
     cap_drop:
       - ALL
     security_opt:
       - no-new-privileges:true
+    pids_limit: 128
+
+    # —— 资源上限，防止被刷流量时拖垮整台服务器 ——
+    mem_limit: 128m
+    cpus: 0.5
+
+    # —— 日志轮转：不加这个，nginx 日志会一直涨到磁盘满 ——
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
       interval: 30s
