@@ -1,3 +1,7 @@
+<div align="center">
+
+<img src="build/brand/deepcloud.jpg" width="112" alt="DeepCloud">
+
 # Vibe Island 产品介绍
 
 ### DeepCloud 的统一 AI Agent 调度台
